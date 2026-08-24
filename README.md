@@ -2,12 +2,16 @@
 
 ## Download
 
-Prebuilt, ready-to-run downloads (no PowerShell/Terminal command needed to start) are published automatically on the **[Releases page](https://github.com/Jrodgers6446/OSmaster/releases)**:
+|  | |
+|---|---|
+| 🪟 **Windows** | **[⬇ Download OSmaster for Windows](https://raw.githubusercontent.com/Jrodgers6446/OSmaster/main/dist/OSmaster-Windows.zip)** |
+| 🍎 **macOS** | **[⬇ Download OSmaster for macOS](https://raw.githubusercontent.com/Jrodgers6446/OSmaster/main/dist/OSmaster-macOS.zip)** |
 
-- **Windows:** `OSmaster-Windows.zip` — unzip and double-click `OSmaster.exe`. It'll prompt for admin rights (required) and open the same tabbed window described below.
-- **macOS:** `OSmaster-macOS.zip` — unzip and double-click `OSmaster.app`. **Honest caveat:** unlike the Windows build, there's no native Mac GUI yet — the `.app` just opens Terminal and runs the interactive `Deploy-macOS.sh` script for you. It's genuinely double-click-and-go, just not a full window with tabs/buttons like the Windows version.
+**Windows:** unzip anywhere permanent, double-click `Create Desktop Shortcut.vbs` once — a wrench-icon shortcut appears on your Desktop. From then on, just click that icon: approve the one Windows UAC prompt (required by Windows itself for admin rights, not something any app can skip), and the native tabbed app window opens — no console.
 
-Both are built automatically by GitHub Actions on GitHub's own Windows and Mac servers every time a new version is tagged — see `.github/workflows/build-release.yml` if you want to see exactly how, or trigger a rebuild yourself from the Actions tab.
+**macOS:** unzip, drag `OSmaster.app` to Applications or your Desktop, double-click. First launch needs a right-click → Open to get past Gatekeeper's unsigned-app warning (one-time only after that). Opens Terminal to do its work rather than a native window — see the macOS section further down for why that's a real platform constraint, not a shortcut taken.
+
+These are plain zip files hosted directly in this repo (`/dist`), not GitHub Releases assets — same one-click download experience, just via a direct link.
 
 ## The scripts themselves (if you'd rather not use the packaged downloads)
 
@@ -18,7 +22,7 @@ A native tabbed GUI (`OSmaster-GUI.ps1`) plus the underlying scripts it wraps �
 ```powershell
 .\OSmaster-GUI.ps1
 ```
-or, for a proper double-click desktop app experience (no visible console — see the packaged download below):
+or, for a proper double-click desktop app experience (no visible console):
 ```
 OSmaster.vbs
 ```
@@ -57,6 +61,9 @@ Windows and macOS have genuinely different distribution models, so this isn't ju
 
 ### Usage
 
+**Packaged app (recommended):** see the Download section above — `OSmaster.app` wraps this same script with a real icon and double-click launch via Terminal.
+
+**Running the script directly:**
 ```zsh
 chmod +x Deploy-macOS.sh
 ./Deploy-macOS.sh
