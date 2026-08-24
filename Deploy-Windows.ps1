@@ -4,6 +4,13 @@
     OSmaster: Windows ISO acquisition + headless deployment, chained into one script.
 
 .DESCRIPTION
+    Supports Windows 8.1, 10, and 11, across the editions Microsoft still
+    distributes retail ISOs for (Home/Pro/Education/Enterprise, varying by
+    version — run Fido's own '-Win list' / '-Ed list' to see exactly what's
+    available for a given release). Note: plain Windows 8 (pre-8.1) retail
+    ISOs are no longer distributed by Microsoft at all — 8.1 is the oldest
+    version Fido (and this script) can fetch.
+
     This script does three things, in order:
       1. Fetches an official Windows ISO directly from Microsoft using Fido
          (github.com/pbatard/Fido) — no browser click-through required.
@@ -40,7 +47,7 @@ param(
 
     # Optional: skip Fido's interactive menu by pre-specifying these.
     # Leave blank to be prompted interactively instead.
-    [ValidateSet('10','11')]
+    [ValidateSet('8.1','10','11')]
     [string]$WindowsVersion,
     [string]$Edition,
     [string]$Language = 'English',
