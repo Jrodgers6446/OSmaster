@@ -1,9 +1,9 @@
 ' OSmaster.vbs
 ' Double-click this to launch OSmaster with no console/PowerShell window
-' visible -- just the app window itself. You'll still see the standard
-' Windows UAC elevation prompt once (that's required by Windows for any
-' admin-rights app and can't be skipped or hidden), but after approving
-' it, only the OSmaster window appears.
+' visible -- just the app window. You'll see the standard Windows UAC
+' elevation prompt once (required by Windows for any admin-rights app,
+' can't be skipped or hidden). The app itself will offer to create a
+' Desktop shortcut the first time it opens.
 
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 strFolder = objFSO.GetParentFolderName(WScript.ScriptFullName)
