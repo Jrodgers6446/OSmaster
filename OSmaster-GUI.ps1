@@ -537,7 +537,7 @@ $c['PrepPsBtn'].Add_Click({
             if ($console -eq 'PS3') {
                 $sync.Log.Add("On the PS3: power off fully, plug in USB, hold power until it beeps twice/powers off/beeps again -- boots Recovery Menu -- choose System Update.")
             } else {
-                $sync.Log.Add("On the $console: power off, plug in USB, hold power until second beep (~7s) -- boots Safe Mode -- pair a controller via USB, choose Update or Reinstall System Software.")
+                $sync.Log.Add("On the ${console}: power off, plug in USB, hold power until second beep (~7s) -- boots Safe Mode -- pair a controller via USB, choose Update or Reinstall System Software.")
             }
         } catch {
             $sync.Log.Add("ERROR: $($_.Exception.Message)")
