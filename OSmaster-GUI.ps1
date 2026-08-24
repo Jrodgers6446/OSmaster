@@ -507,13 +507,35 @@ $c['DeployWinBtn'].Add_Click({
                     $sync.Log.Add("Downloading Fido.ps1 to: $fidoPath")
                     Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/pbatard/Fido/master/Fido.ps1' -OutFile $fidoPath -UseBasicParsing
                 }
-                $fidoArgs = @('-ExecutionPolicy','Bypass','-File',$fidoPath,'-Win',$winVer,'-Arch',$arch)
+                $fidoArgs = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$fidoPath,'-Win',$winVer,'-Arch',$arch)
                 if ($edition) { $fidoArgs += @('-Ed', $edition) }
                 if ($release) { $fidoArgs += @('-Rel', $release) }
                 $sync.Log.Add("Running: powershell.exe $($fidoArgs -join ' ')")
-                & powershell.exe @fidoArgs
+
+                # IMPORTANT: capture Fido's actual output line-by-line into our
+                # log. Previously this just ran silently with no visibility at
+                # all into what Fido was doing or why it might be failing.
+                $psi = New-Object System.Diagnostics.ProcessStartInfo
+                $psi.FileName = 'powershell.exe'
+                $psi.Arguments = ($fidoArgs | ForEach-Object { if ($_ -match '\s') { "`"$_`"" } else { $_ } }) -join ' '
+                $psi.RedirectStandardOutput = $true
+                $psi.RedirectStandardError = $true
+                $psi.UseShellExecute = $false
+                $psi.CreateNoWindow = $true
+                $fidoProc = [System.Diagnostics.Process]::Start($psi)
+                while (-not $fidoProc.StandardOutput.EndOfStream) {
+                    $line = $fidoProc.StandardOutput.ReadLine()
+                    if ($line) { $sync.Log.Add("[Fido] $line") }
+                }
+                $stderr = $fidoProc.StandardError.ReadToEnd()
+                $fidoProc.WaitForExit()
+                if ($stderr) { $sync.Log.Add("[Fido stderr] $stderr") }
+                if ($fidoProc.ExitCode -ne 0) {
+                    $sync.Log.Add("[Fido] exited with code $($fidoProc.ExitCode)")
+                }
+
                 $iso = Get-ChildItem -Path $scriptRoot -Filter '*.iso' -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-                if (-not $iso) { throw "Fido did not produce an ISO file. Check the log lines above for what Fido itself printed." }
+                if (-not $iso) { throw "Fido did not produce an ISO file. Check the [Fido] lines above in the log for what it actually reported." }
                 $isoPath = $iso.FullName
             }
             $sync.Log.Add("Using ISO: $isoPath")
