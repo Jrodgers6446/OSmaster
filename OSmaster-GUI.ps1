@@ -236,6 +236,54 @@ function Start-BackgroundTask {
 $reader = New-Object System.Xml.XmlNodeReader $xaml
 $window = [Windows.Markup.XamlReader]::Load($reader)
 
+# ---------------------------------------------------------------------
+# First-run: offer to create a Desktop shortcut, regardless of whether
+# the app was launched via OSmaster.vbs or directly via PowerShell.
+# ---------------------------------------------------------------------
+function Offer-DesktopShortcut {
+    $desktop = [Environment]::GetFolderPath('Desktop')
+    $shortcutPath = Join-Path $desktop 'OSmaster.lnk'
+    if (Test-Path $shortcutPath) { return } # already created, don't ask again
+
+    $result = [System.Windows.MessageBox]::Show(
+        "Add an OSmaster shortcut to your Desktop?`n`nYou'll be able to launch the app from there next time instead of coming back to this folder.",
+        "OSmaster",
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Question
+    )
+    if ($result -ne [System.Windows.MessageBoxResult]::Yes) { return }
+
+    $scriptDir = $PSScriptRoot
+    $vbsPath = Join-Path $scriptDir 'OSmaster.vbs'
+    $iconPath = Join-Path $scriptDir 'icon.ico'
+
+    try {
+        $wsh = New-Object -ComObject WScript.Shell
+        $link = $wsh.CreateShortcut($shortcutPath)
+        if (Test-Path $vbsPath) {
+            # Prefer routing through OSmaster.vbs -- it launches silently
+            # (no console) and elevates properly via UAC.
+            $link.TargetPath = $vbsPath
+        } else {
+            # Fallback if the .vbs isn't present alongside this script for
+            # some reason: launch PowerShell directly. Note this won't
+            # auto-elevate on double-click the way the .vbs does -- it'll
+            # rely on the #Requires -RunAsAdministrator check at the top
+            # of this script, which will show its own elevation prompt.
+            $link.TargetPath = 'powershell.exe'
+            $link.Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`""
+        }
+        $link.WorkingDirectory = $scriptDir
+        if (Test-Path $iconPath) { $link.IconLocation = $iconPath }
+        $link.Description = 'OSmaster - OS deployment and console recovery toolkit'
+        $link.Save()
+        [System.Windows.MessageBox]::Show("Desktop shortcut created.", "OSmaster", 'OK', 'Information') | Out-Null
+    } catch {
+        [System.Windows.MessageBox]::Show("Couldn't create the shortcut: $($_.Exception.Message)", "OSmaster", 'OK', 'Warning') | Out-Null
+    }
+}
+Offer-DesktopShortcut
+
 # Grab named controls
 $c = @{}
 $xaml.SelectNodes("//*[@*[local-name()='Name']]") | ForEach-Object {
