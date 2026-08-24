@@ -18,6 +18,10 @@ A native tabbed GUI (`OSmaster-GUI.ps1`) plus the underlying scripts it wraps �
 ```powershell
 .\OSmaster-GUI.ps1
 ```
+or, for a proper double-click desktop app experience (no visible console — see the packaged download below):
+```
+OSmaster.vbs
+```
 
 A single window opens with an **Instructions** tab (pick a tool from the dropdown to read what it does, what it requires, what it erases) and one tab per tool with live controls — dropdowns populated from your actual attached disks/drives, file pickers instead of typed paths, and a shared log pane at the bottom showing progress in real time.
 
