@@ -47,6 +47,8 @@ Run on: Windows, PowerShell 5.1+, as Administrator.
 
 > Note: plain Windows 8 (pre-8.1) retail ISOs are no longer distributed by Microsoft at all — 8.1 is the oldest version Fido (and this script) can fetch.
 
+> ⚠️ **Known Fido issue:** Microsoft runs an anti-automation system ("Sentinel") on its download servers that can block Fido's requests outright — you'll see `Sentinel marked this request as rejected` if this happens. This is a real, currently-active issue affecting Fido and Rufus broadly (server-side IP flagging on Microsoft's end), not a bug here, and there's no code fix for it. A VPN generally doesn't help. If it happens: in the GUI, use the **"Get ISO from Microsoft"** button next to the ISO field to open the real download page and grab the ISO by hand instead; from the CLI, download manually from [microsoft.com/software-download/windows11](https://www.microsoft.com/software-download/windows11) (or `windows10ISO` for Windows 10) and pass it via `-IsoPath`.
+
 ## Deploy-macOS.sh
 
 ### How this differs from the Windows script
