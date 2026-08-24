@@ -7,7 +7,7 @@
 | 🪟 **Windows** | **[⬇ Download OSmaster for Windows](https://raw.githubusercontent.com/Jrodgers6446/OSmaster/main/dist/OSmaster-Windows.zip)** |
 | 🍎 **macOS** | **[⬇ Download OSmaster for macOS](https://raw.githubusercontent.com/Jrodgers6446/OSmaster/main/dist/OSmaster-macOS.zip)** |
 
-**Windows:** unzip anywhere, right-click `Setup.ps1` → "Run with PowerShell" once — creates a proper shortcut (optionally on your Desktop too). Double-click that shortcut going forward: approve the one Windows UAC prompt (required by Windows itself for admin rights, not something any app can skip), and the native tabbed app window opens — no console.
+**Windows:** unzip anywhere, double-click `Setup.bat` once — creates a proper shortcut (optionally on your Desktop too). Double-click that shortcut going forward: approve the one Windows UAC prompt (required by Windows itself for admin rights, not something any app can skip), and the native tabbed app window opens — no console.
 
 **macOS:** unzip, drag `OSmaster.app` to Applications or your Desktop, double-click. First launch needs a right-click → Open to get past Gatekeeper's unsigned-app warning (one-time only after that). Opens Terminal to do its work rather than a native window — see the macOS section further down for why that's a real platform constraint, not a shortcut taken.
 
