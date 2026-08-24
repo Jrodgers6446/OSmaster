@@ -1,6 +1,18 @@
 # OSmaster
 
-Two scripts that chain together full OS deployment pipelines, end to end — one for Windows, one for macOS. They work quite differently under the hood, because Windows and Apple distribute their OS installers in fundamentally different ways.
+Two scripts that chain together full OS deployment pipelines, end to end — one for Windows, one for macOS — plus two official-recovery tools for Xbox and PlayStation consoles.
+
+## Start here: `OSmaster.ps1`
+
+If you're not sure which script you need, run this first:
+
+```powershell
+.\OSmaster.ps1
+```
+
+It's a menu that explains each tool (what it does, what it requires, what it will erase) before you commit to running it — nothing destructive happens until you explicitly confirm inside the tool itself. Covers everything runnable from Windows; the macOS script isn't listed there since it has a hard platform requirement (see below).
+
+Every script also supports its own `-Help` (PowerShell) or `--help` (bash) flag if you want to jump straight to one without the menu, e.g. `.\Deploy-Windows.ps1 -Help`.
 
 ## Deploy-Windows.ps1
 
