@@ -22,7 +22,7 @@
 #>
 
 [CmdletBinding()]
-param()
+param([switch]$Help)
 
 $ErrorActionPreference = 'Stop'
 
@@ -31,6 +31,49 @@ function Confirm-OrAbort($message) {
     $response = Read-Host "$message (type YES to continue)"
     if ($response -ne 'YES') { Write-Host "Aborted." -ForegroundColor Yellow; exit 1 }
 }
+
+function Show-Instructions {
+@"
+
+===============================================================
+  Prep-XboxRecovery.ps1 -- Instructions
+===============================================================
+
+WHAT THIS DOES
+  Prepares a USB drive for Xbox's OFFICIAL Offline System Update (OSU1)
+  repair process -- Microsoft's own recovery mechanism for consoles
+  stuck on a black screen, boot loop, or corrupted update. This does
+  NOT erase games or saves (that's a separate, unrelated factory
+  reset option on the console itself).
+
+  This script does not push an OS onto the target drive the way the
+  Windows/macOS tools do -- the console's internal storage already has
+  its own OS. Instead, it preps a USB installer, and the CONSOLE ITSELF
+  reads that USB and repairs its own system software.
+
+BEFORE YOU RUN THIS
+  - Run PowerShell AS ADMINISTRATOR.
+  - Have a USB drive with at least 8GB free -- it WILL be reformatted,
+    erasing anything currently on it.
+  - You'll need to manually download the OSU1.zip file yourself from
+    the official Microsoft page the script opens for you -- Microsoft
+    doesn't publish a stable direct-download link, so this step can't
+    be automated without risking a broken URL later.
+
+TYPICAL USE
+  1. .\Prep-XboxRecovery.ps1
+  2. Download OSU1.zip from the page that opens, matching your console
+     family (Xbox One vs Series X|S).
+  3. Point the script at the downloaded file.
+  4. Pick and confirm the USB drive letter -- it gets reformatted.
+  5. The script places the files correctly and prints the exact
+     button-combo steps to run on the console itself.
+
+===============================================================
+"@ | Write-Host
+}
+
+if ($Help) { Show-Instructions; exit 0 }
 
 Write-Section "Step 1: Get the official OSU1 file from Microsoft"
 Write-Host "Opening the official Xbox Offline System Update page in your browser."
