@@ -1,18 +1,22 @@
 # OSmaster
 
-Two scripts that chain together full OS deployment pipelines, end to end — one for Windows, one for macOS — plus two official-recovery tools for Xbox and PlayStation consoles.
+A native tabbed GUI (`OSmaster-GUI.ps1`) plus the underlying scripts it wraps — one for Windows deployment, one for macOS, and two official-recovery tools for Xbox and PlayStation consoles.
 
-## Start here: `OSmaster.ps1`
-
-If you're not sure which script you need, run this first:
+## Start here: `OSmaster-GUI.ps1`
 
 ```powershell
-.\OSmaster.ps1
+.\OSmaster-GUI.ps1
 ```
 
-It's a menu that explains each tool (what it does, what it requires, what it will erase) before you commit to running it — nothing destructive happens until you explicitly confirm inside the tool itself. Covers everything runnable from Windows; the macOS script isn't listed there since it has a hard platform requirement (see below).
+A single window opens with an **Instructions** tab (pick a tool from the dropdown to read what it does, what it requires, what it erases) and one tab per tool with live controls — dropdowns populated from your actual attached disks/drives, file pickers instead of typed paths, and a shared log pane at the bottom showing progress in real time.
 
-Every script also supports its own `-Help` (PowerShell) or `--help` (bash) flag if you want to jump straight to one without the menu, e.g. `.\Deploy-Windows.ps1 -Help`.
+**Safety model:** every destructive action button (Deploy, Prepare Recovery USB) stays disabled until you both select a target from a live list *and* type that exact target's letter/number into a confirm box next to it. There's no way to click a destructive button by accident — it's physically disabled until the confirmation matches.
+
+This is a single self-contained PowerShell script — no Node.js, no npm install, no build/packaging step. Just PowerShell (already built into Windows), run as Administrator.
+
+> Note: this was built and reviewed carefully, but hasn't been run on real hardware yet — if you hit any errors on first run, let me know what PowerShell prints and I'll fix it.
+
+If you'd rather not use the GUI, every underlying script also works standalone from the command line (see below), and `OSmaster.ps1` offers the same tool selection as a simple text menu instead of a window.
 
 ## Deploy-Windows.ps1
 
