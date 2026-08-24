@@ -27,8 +27,9 @@
 
 [CmdletBinding()]
 param(
+    [switch]$Help,
+
     [ValidateSet('PS3','PS4','PS5')]
-    [Parameter(Mandatory=$true)]
     [string]$Console
 )
 
@@ -38,6 +39,57 @@ function Write-Section($text) { Write-Host "`n==== $text ====" -ForegroundColor 
 function Confirm-OrAbort($message) {
     $response = Read-Host "$message (type YES to continue)"
     if ($response -ne 'YES') { Write-Host "Aborted." -ForegroundColor Yellow; exit 1 }
+}
+
+function Show-Instructions {
+@"
+
+===============================================================
+  Prep-PlayStationRecovery.ps1 -- Instructions
+===============================================================
+
+WHAT THIS DOES
+  Prepares a USB drive for Sony's OFFICIAL system software reinstall
+  process, for PS3, PS4, or PS5 -- Safe Mode recovery, same as the
+  Xbox script's equivalent. Handles the exact folder structure and
+  filename Sony requires (this is the #1 thing people get wrong by
+  hand -- especially PS3's oddball "PS3UPDAT.PUP", no E, versus
+  PS4/PS5's "PS4UPDATE.PUP"/"PS5UPDATE.PUP").
+
+  IMPORTANT: this fixes SOFTWARE problems only (corrupted system
+  software, stuck updates, boot loops from a bad update). It does
+  NOT fix hardware faults -- a dead PSU, or the classic PS3 YLOD from
+  cracked GPU/CPU solder joints, will not be fixed by this. If the
+  console shows the green-yellow-blinking-red light sequence, that's
+  hardware, and this tool won't help.
+
+BEFORE YOU RUN THIS
+  - Run PowerShell AS ADMINISTRATOR.
+  - Have a USB drive to spare -- it WILL be reformatted as exFAT,
+    erasing anything currently on it.
+  - You'll manually download the official update file from the Sony
+    page the script opens -- same reasoning as the Xbox tool, Sony
+    doesn't publish a stable direct link either.
+
+TYPICAL USE
+  1. .\Prep-PlayStationRecovery.ps1 -Console PS5     (or PS4 / PS3)
+  2. Download the official update/reinstallation file from the page
+     that opens.
+  3. Point the script at the downloaded file.
+  4. Pick and confirm the USB drive letter.
+  5. The script places it with the exact required folder/filename and
+     prints the exact Safe Mode steps for that console.
+
+===============================================================
+"@ | Write-Host
+}
+
+if ($Help) { Show-Instructions; exit 0 }
+
+if (-not $Console) {
+    Write-Host "You must specify -Console PS3, -Console PS4, or -Console PS5." -ForegroundColor Red
+    Write-Host "Run with -Help for full instructions." -ForegroundColor Yellow
+    exit 1
 }
 
 # PS3 uses a different filename than PS4/PS5 — a well-known gotcha.
