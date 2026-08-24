@@ -27,6 +27,51 @@
 #
 set -euo pipefail
 
+show_instructions() {
+cat << 'EOF'
+
+===============================================================
+  Deploy-macOS.sh -- Instructions
+===============================================================
+
+WHAT THIS DOES
+  Fetches an official macOS installer directly from Apple (via the
+  built-in `softwareupdate` command), then either builds a bootable
+  USB installer or deploys headlessly straight to a target volume --
+  both using Apple's own tools (createinstallmedia / startosinstall).
+
+MUST RUN ON AN ACTUAL MAC
+  Apple's fetching and media-creation tools only exist on macOS. This
+  cannot be run from Windows or Linux -- that's an Apple platform
+  restriction, not a limitation of this script. If you're reading
+  this from a non-Mac machine, this script isn't the tool for that
+  job; there is no cross-platform equivalent.
+
+BEFORE YOU RUN THIS
+  - Run on the target Mac itself, with sudo access.
+  - Decide up front: bootable USB (to install elsewhere / keep as
+    reusable media) or headless direct-deploy (wipes a volume on THIS
+    machine and installs straight to it, no separate boot media).
+  - Direct-deploy mode reboots the machine automatically partway
+    through -- don't run it if you need to babysit other work on the
+    same machine during that window.
+
+TYPICAL USE
+  1. chmod +x Deploy-macOS.sh && ./Deploy-macOS.sh
+  2. Pick a macOS version from the list Apple currently serves.
+  3. Choose bootable-USB or direct-deploy.
+  4. Confirm the target volume by name -- it gets erased.
+  5. Let it run; direct-deploy will reboot on its own to finish.
+
+===============================================================
+EOF
+}
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    show_instructions
+    exit 0
+fi
+
 say() { print -P "%F{cyan}==== $1 ====%f"; }
 warn() { print -P "%F{yellow}$1%f"; }
 err() { print -P "%F{red}$1%f"; }
