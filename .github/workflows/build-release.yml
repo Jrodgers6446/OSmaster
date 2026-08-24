@@ -1,0 +1,111 @@
+name: Build and Release OSmaster
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PS2EXE
+        shell: pwsh
+        run: Install-Module -Name ps2exe -Force -Scope CurrentUser
+
+      - name: Compile OSmaster-GUI.ps1 to a standalone .exe
+        shell: pwsh
+        run: |
+          Import-Module ps2exe
+          Invoke-ps2exe -inputFile "OSmaster-GUI.ps1" `
+                         -outputFile "OSmaster.exe" `
+                         -title "OSmaster" `
+                         -product "OSmaster" `
+                         -requireAdmin `
+                         -noConsole:$false `
+                         -STA
+
+      - name: Package portable folder (exe + companion scripts it may shell out to)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item OSmaster.exe dist\
+          Copy-Item Deploy-Windows.ps1 dist\
+          Copy-Item Prep-XboxRecovery.ps1 dist\
+          Copy-Item Prep-PlayStationRecovery.ps1 dist\
+          Copy-Item OSmaster.ps1 dist\
+          Copy-Item README.md dist\
+          Compress-Archive -Path dist\* -DestinationPath OSmaster-Windows.zip
+
+      - name: Upload Windows build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OSmaster-Windows
+          path: OSmaster-Windows.zip
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build a double-clickable .app wrapper around Deploy-macOS.sh
+        run: |
+          APP="OSmaster.app"
+          mkdir -p "$APP/Contents/MacOS"
+          mkdir -p "$APP/Contents/Resources"
+
+          cp Deploy-macOS.sh "$APP/Contents/Resources/Deploy-macOS.sh"
+          chmod +x "$APP/Contents/Resources/Deploy-macOS.sh"
+
+          cat > "$APP/Contents/MacOS/OSmaster" << 'LAUNCHER'
+          #!/bin/zsh
+          DIR="$(cd "$(dirname "$0")/../Resources" && pwd)"
+          osascript -e "tell application \"Terminal\" to do script \"'$DIR/Deploy-macOS.sh'\""
+          osascript -e 'tell application "Terminal" to activate'
+          LAUNCHER
+          chmod +x "$APP/Contents/MacOS/OSmaster"
+
+          cat > "$APP/Contents/Info.plist" << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key><string>OSmaster</string>
+            <key>CFBundleIdentifier</key><string>com.osmaster.app</string>
+            <key>CFBundleVersion</key><string>1.0</string>
+            <key>CFBundleExecutable</key><string>OSmaster</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>LSMinimumSystemVersion</key><string>11.0</string>
+          </dict>
+          </plist>
+          PLIST
+
+          zip -r OSmaster-macOS.zip "$APP" README.md
+
+      - name: Upload macOS build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OSmaster-macOS
+          path: OSmaster-macOS.zip
+
+  publish-release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish GitHub Release with both downloads attached
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/OSmaster-Windows/OSmaster-Windows.zip
+            artifacts/OSmaster-macOS/OSmaster-macOS.zip
+          generate_release_notes: true
