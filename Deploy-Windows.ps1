@@ -41,6 +41,8 @@
 
 [CmdletBinding()]
 param(
+    [switch]$Help,
+
     # Optional: path to an already-downloaded Windows ISO. If omitted, the
     # script runs Fido interactively to fetch one.
     [string]$IsoPath,
@@ -69,6 +71,59 @@ function Confirm-OrAbort($message) {
         Write-Host "Aborted by user." -ForegroundColor Yellow
         exit 1
     }
+}
+
+function Show-Instructions {
+@"
+
+===============================================================
+  Deploy-Windows.ps1 -- Instructions
+===============================================================
+
+WHAT THIS DOES
+  Downloads an official Windows ISO from Microsoft (via Fido), then
+  partitions, formats, and deploys it directly onto a target disk --
+  no Windows Setup GUI involved. On first boot, the target disk goes
+  straight into Windows OOBE (the first-run setup screens).
+
+SUPPORTS
+  Windows 8.1, 10, and 11. Editions vary by version (Home/Pro/Edu/
+  Enterprise) -- if unsure, leave -Edition blank and Fido will prompt
+  you with what's actually available for the version you pick.
+
+BEFORE YOU RUN THIS
+  - Run PowerShell AS ADMINISTRATOR, or this will refuse to start.
+  - Know exactly which physical disk is your target. The script will
+    list every attached disk with size + model and make you type the
+    disk number TWICE plus a final YES before touching anything --
+    read that prompt carefully every single time. There is no undo.
+  - If this is a laptop/desktop with only one drive and that drive is
+    currently running an OS you need, STOP -- this is for a blank or
+    disposable target disk, not the disk you're currently booted from.
+
+TYPICAL USE
+  1. .\Deploy-Windows.ps1
+  2. Follow Fido's prompts to pick version/edition/language/arch
+     (or pre-supply them with -WindowsVersion, -Edition, etc. to
+     skip the prompts)
+  3. When the disk list appears, identify your target by SIZE, not
+     just number -- disk numbers can shift between sessions.
+  4. Confirm twice, then let it run. It'll tell you when it's done.
+
+ALREADY HAVE AN ISO?
+  .\Deploy-Windows.ps1 -IsoPath "C:\path\to\file.iso"
+  Skips the Fido download step entirely.
+
+FULL PARAMETER REFERENCE
+  Run: Get-Help .\Deploy-Windows.ps1 -Detailed
+
+===============================================================
+"@ | Write-Host
+}
+
+if ($Help) {
+    Show-Instructions
+    exit 0
 }
 
 # ----------------------------------------------------------------------
