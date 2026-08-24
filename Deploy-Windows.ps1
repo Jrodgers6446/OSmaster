@@ -7,9 +7,12 @@
     Supports Windows 8.1, 10, and 11, across the editions Microsoft still
     distributes retail ISOs for (Home/Pro/Education/Enterprise, varying by
     version — run Fido's own '-Win list' / '-Ed list' to see exactly what's
-    available for a given release). Note: plain Windows 8 (pre-8.1) retail
-    ISOs are no longer distributed by Microsoft at all — 8.1 is the oldest
-    version Fido (and this script) can fetch.
+    available for a given release), in x64/x86/arm64, and optionally a
+    specific historical build via -Release (e.g. '21H1', '1607') rather
+    than always the latest. Note: plain Windows 8 (pre-8.1) retail ISOs
+    are no longer distributed by Microsoft at all — 8.1 is the oldest
+    version Fido (and this script) can fetch, and Windows 7 isn't
+    available through this mechanism at all for the same reason.
 
     This script does three things, in order:
       1. Fetches an official Windows ISO directly from Microsoft using Fido
@@ -54,7 +57,10 @@ param(
     [string]$Edition,
     [string]$Language = 'English',
     [ValidateSet('x64','x86','arm64')]
-    [string]$Arch = 'x64'
+    [string]$Arch = 'x64',
+    # Optional specific build/release (Windows 10 only really has meaningful
+    # history here -- e.g. '21H1', '1607' -- leave blank for "latest").
+    [string]$Release
 )
 
 $ErrorActionPreference = 'Stop'
@@ -149,6 +155,7 @@ if (-not $IsoPath) {
     if ($WindowsVersion) { $fidoArgs += @('-Win', $WindowsVersion) }
     if ($Edition)        { $fidoArgs += @('-Ed', $Edition) }
     if ($Language)       { $fidoArgs += @('-Lang', $Language) }
+    if ($Release)        { $fidoArgs += @('-Rel', $Release) }
 
     Write-Host "Launching Fido — follow any on-screen prompts for version/edition if not pre-specified..."
     & powershell.exe @fidoArgs
