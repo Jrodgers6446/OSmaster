@@ -74,7 +74,7 @@ function Start-BackgroundTask {
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/><RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/>
           </Grid.RowDefinitions>
 
           <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,4">
@@ -93,26 +93,38 @@ function Start-BackgroundTask {
           </StackPanel>
 
           <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="0,4">
+            <TextBlock Text="Architecture:" Width="150" VerticalAlignment="Center"/>
+            <ComboBox Name="WinArch" Width="120">
+              <ComboBoxItem Content="x64" IsSelected="True"/>
+              <ComboBoxItem Content="x86"/>
+              <ComboBoxItem Content="arm64"/>
+            </ComboBox>
+            <TextBlock Text="   Specific build (optional):" VerticalAlignment="Center" Margin="20,0,8,0"/>
+            <TextBox Name="WinRelease" Width="120"/>
+            <TextBlock Text="  e.g. 21H1, 1607 -- blank = latest" Foreground="Gray" VerticalAlignment="Center"/>
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Grid.Row="3" Margin="0,4">
             <TextBlock Text="Or use existing ISO:" Width="150" VerticalAlignment="Center"/>
             <TextBox Name="IsoPathBox" Width="420" IsReadOnly="True"/>
             <Button Name="BrowseIsoBtn" Content="Browse..." Width="90" Margin="8,0,0,0"/>
           </StackPanel>
 
-          <StackPanel Orientation="Horizontal" Grid.Row="3" Margin="0,10,0,4">
+          <StackPanel Orientation="Horizontal" Grid.Row="4" Margin="0,10,0,4">
             <TextBlock Text="Target disk:" Width="150" VerticalAlignment="Center"/>
             <ComboBox Name="DiskPicker" Width="500"/>
             <Button Name="RefreshDisksBtn" Content="Refresh" Width="90" Margin="8,0,0,0"/>
           </StackPanel>
 
-          <TextBlock Grid.Row="4" Text="EVERYTHING ON THE SELECTED DISK WILL BE PERMANENTLY ERASED."
+          <TextBlock Grid.Row="5" Text="EVERYTHING ON THE SELECTED DISK WILL BE PERMANENTLY ERASED."
                      Foreground="Red" FontWeight="Bold" Margin="0,4"/>
 
-          <StackPanel Orientation="Horizontal" Grid.Row="5" Margin="0,4">
+          <StackPanel Orientation="Horizontal" Grid.Row="6" Margin="0,4">
             <TextBlock Text="Type disk number to confirm:" Width="220" VerticalAlignment="Center"/>
             <TextBox Name="WinConfirmBox" Width="80"/>
           </StackPanel>
 
-          <StackPanel Orientation="Horizontal" Grid.Row="6" Margin="0,10">
+          <StackPanel Orientation="Horizontal" Grid.Row="7" Margin="0,10">
             <Button Name="DeployWinBtn" Content="Wipe &amp; Deploy Windows" Width="220" Height="34"
                     Background="#B5482F" Foreground="White" FontWeight="Bold" IsEnabled="False"/>
           </StackPanel>
@@ -252,7 +264,13 @@ WHAT THIS DOES
   Windows Setup GUI involved. On first boot, the target disk goes
   straight into Windows OOBE (the first-run setup screens).
 
-SUPPORTS: Windows 8.1, 10, and 11.
+SUPPORTS: Windows 8.1, 10, and 11, in x64/x86/arm64, and optionally a
+specific historical build (e.g. 21H1, 1607) rather than just latest --
+useful for matching older hardware/driver compatibility. Note: Windows 7
+is not available through this tool at all -- Microsoft no longer serves
+official retail ISO links for it, so there's no legitimate source left
+to pull from. Windows Server / LTSC / Insider builds use entirely
+different distribution channels and aren't covered here.
 
 BEFORE YOU RUN THIS
   - Know exactly which physical disk is your target -- identify it by
@@ -369,18 +387,21 @@ $c['DeployWinBtn'].Add_Click({
     $isoPath = $c['IsoPathBox'].Text
     $winVer = $c['WinVersion'].Text
     $edition = $c['WinEdition'].Text
+    $arch = $c['WinArch'].Text
+    $release = $c['WinRelease'].Text
 
     Append-Log "Starting Windows deployment to Disk $diskNum..."
-    Start-BackgroundTask -Params @{ diskNum = $diskNum; isoPath = $isoPath; winVer = $winVer; edition = $edition } -ScriptBlock {
+    Start-BackgroundTask -Params @{ diskNum = $diskNum; isoPath = $isoPath; winVer = $winVer; edition = $edition; arch = $arch; release = $release } -ScriptBlock {
         try {
             if (-not $isoPath) {
-                $sync.Log.Add("No ISO supplied -- fetching via Fido for Windows $winVer $edition ...")
+                $sync.Log.Add("No ISO supplied -- fetching via Fido for Windows $winVer $edition ($arch)" + $(if ($release) { ", build $release" } else { ", latest build" }) + " ...")
                 $fidoPath = Join-Path $PSScriptRoot 'Fido.ps1'
                 if (-not (Test-Path $fidoPath)) {
                     Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/pbatard/Fido/master/Fido.ps1' -OutFile $fidoPath -UseBasicParsing
                 }
-                $fidoArgs = @('-ExecutionPolicy','Bypass','-File',$fidoPath,'-Win',$winVer,'-Arch','x64')
+                $fidoArgs = @('-ExecutionPolicy','Bypass','-File',$fidoPath,'-Win',$winVer,'-Arch',$arch)
                 if ($edition) { $fidoArgs += @('-Ed', $edition) }
+                if ($release) { $fidoArgs += @('-Rel', $release) }
                 & powershell.exe @fidoArgs
                 $iso = Get-ChildItem -Path (Split-Path $fidoPath) -Filter '*.iso' -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
                 if (-not $iso) { throw "Fido did not produce an ISO file." }
