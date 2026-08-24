@@ -88,8 +88,16 @@ function Start-BackgroundTask {
 
           <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,4">
             <TextBlock Text="Edition:" Width="150" VerticalAlignment="Center"/>
-            <TextBox Name="WinEdition" Width="200" Text="Pro"/>
-            <TextBlock Text="  (leave blank to be prompted by Fido)" Foreground="Gray" VerticalAlignment="Center"/>
+            <ComboBox Name="WinEdition" Width="200">
+              <ComboBoxItem Content="Pro" IsSelected="True"/>
+              <ComboBoxItem Content="Home"/>
+              <ComboBoxItem Content="Education"/>
+              <ComboBoxItem Content="Enterprise"/>
+              <ComboBoxItem Content="Pro Education"/>
+              <ComboBoxItem Content="Pro for Workstations"/>
+              <ComboBoxItem Content="(let Fido prompt)"/>
+            </ComboBox>
+            <TextBlock Text="  not every edition exists for every version -- Fido will tell you if it doesn't" Foreground="Gray" VerticalAlignment="Center"/>
           </StackPanel>
 
           <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="0,4">
@@ -264,13 +272,17 @@ WHAT THIS DOES
   Windows Setup GUI involved. On first boot, the target disk goes
   straight into Windows OOBE (the first-run setup screens).
 
-SUPPORTS: Windows 8.1, 10, and 11, in x64/x86/arm64, and optionally a
-specific historical build (e.g. 21H1, 1607) rather than just latest --
-useful for matching older hardware/driver compatibility. Note: Windows 7
-is not available through this tool at all -- Microsoft no longer serves
-official retail ISO links for it, so there's no legitimate source left
-to pull from. Windows Server / LTSC / Insider builds use entirely
-different distribution channels and aren't covered here.
+SUPPORTS: Windows 8.1, 10, and 11 (there is no Windows 9 -- Microsoft
+skipped that number entirely, going straight from 8.1 to 10), in x64/
+x86/arm64, and optionally a specific historical build (e.g. 21H1, 1607)
+rather than just latest -- useful for matching older hardware/driver
+compatibility. Edition is a dropdown of common options; not every
+edition exists for every version, Fido will tell you if your pick isn't
+available for the version selected. Windows 7 is not available through
+this tool at all -- Microsoft no longer serves official retail ISO links
+for it, so there's no legitimate source left to pull from. Windows
+Server / LTSC / Insider builds use entirely different distribution
+channels and aren't covered here.
 
 BEFORE YOU RUN THIS
   - Know exactly which physical disk is your target -- identify it by
@@ -387,6 +399,7 @@ $c['DeployWinBtn'].Add_Click({
     $isoPath = $c['IsoPathBox'].Text
     $winVer = $c['WinVersion'].Text
     $edition = $c['WinEdition'].Text
+    if ($edition -eq '(let Fido prompt)') { $edition = '' }
     $arch = $c['WinArch'].Text
     $release = $c['WinRelease'].Text
 
