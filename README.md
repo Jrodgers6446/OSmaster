@@ -39,6 +39,32 @@ Run on: an actual Mac, macOS, with `sudo` access.
 
 Apple's installer tools are built for, and intended for, genuine Apple hardware. This script doesn't do anything to work around that — it's a straightforward wrapper around Apple's own `softwareupdate`/`createinstallmedia`/`startosinstall` commands, used the way Apple documents them.
 
+## Prep-XboxRecovery.ps1 and Prep-PlayStationRecovery.ps1
+
+These are a different category from the OS-install scripts above — they're **repair tools**, using each manufacturer's own official offline/Safe-Mode system software reinstall mechanism. Not jailbreaking, not homebrew, not firmware downgrades — the same official recovery path Microsoft and Sony document and support directly.
+
+Both scripts follow the same pattern:
+1. Open the correct official support page in your browser (Microsoft/Sony don't publish stable direct-download links for these files, so this step stays manual rather than relying on a URL that'll eventually break)
+2. You download the official update/recovery file
+3. The script formats a USB drive and places the file in the **exact** folder structure and filename the console requires — this is the part people most often get wrong by hand (case sensitivity, extra file extensions, wrong folder depth)
+4. The script prints the exact button-combo/Safe-Mode steps for applying it on the console itself
+
+### Xbox
+```powershell
+.\Prep-XboxRecovery.ps1
+```
+Supports Xbox One family and Xbox Series X|S, via Microsoft's official Offline System Update (OSU1) process. Formats the USB as NTFS, places the `$SystemUpdate` folder at the drive root. Does not erase games or saves.
+
+### PlayStation
+```powershell
+.\Prep-PlayStationRecovery.ps1 -Console PS5
+.\Prep-PlayStationRecovery.ps1 -Console PS4
+.\Prep-PlayStationRecovery.ps1 -Console PS3
+```
+Formats the USB as exFAT, creates the `\<Console>\UPDATE\` folder structure, and places the file under its console-specific required name — note PS3 uses `PS3UPDAT.PUP` (no "E"), while PS4/PS5 use `PS4UPDATE.PUP`/`PS5UPDATE.PUP` — a well-known gotcha this script handles for you.
+
+**Important:** this reinstalls *system software* only. If a console's problem is a hardware fault — a dead PSU, or the classic PS3 YLOD from cracked GPU/CPU solder joints — a software reinstall will not fix it. This tool is for corrupted/stuck system software, boot loops caused by bad updates, and similar software-level issues, not physical hardware repair.
+
 ## ⚠️ Before you run this
 
 **Step 2 wipes the target disk completely and irreversibly.** The script will:
