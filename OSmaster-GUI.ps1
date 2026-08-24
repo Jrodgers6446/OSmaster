@@ -81,7 +81,8 @@ function Start-BackgroundTask {
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
           </Grid.RowDefinitions>
 
           <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,4">
@@ -121,25 +122,29 @@ function Start-BackgroundTask {
 
           <StackPanel Orientation="Horizontal" Grid.Row="3" Margin="0,4">
             <TextBlock Text="Or use existing ISO:" Width="150" VerticalAlignment="Center"/>
-            <TextBox Name="IsoPathBox" Width="420" IsReadOnly="True"/>
+            <TextBox Name="IsoPathBox" Width="300" IsReadOnly="True"/>
             <Button Name="BrowseIsoBtn" Content="Browse..." Width="90" Margin="8,0,0,0"/>
+            <Button Name="OpenDownloadPageBtn" Content="Get ISO from Microsoft" Width="160" Margin="8,0,0,0"/>
           </StackPanel>
 
-          <StackPanel Orientation="Horizontal" Grid.Row="4" Margin="0,10,0,4">
+          <TextBlock Grid.Row="4" Name="DownloadPageHint" TextWrapping="Wrap" Foreground="Gray" FontSize="11" Margin="150,2,0,4"
+                     Text="If Fido's auto-download is blocked (Microsoft's Sentinel anti-automation system), use this instead: opens Microsoft's normal browser download page so you can grab the ISO by hand, then Browse to it above."/>
+
+          <StackPanel Orientation="Horizontal" Grid.Row="5" Margin="0,10,0,4">
             <TextBlock Text="Target disk:" Width="150" VerticalAlignment="Center"/>
             <ComboBox Name="DiskPicker" Width="500"/>
             <Button Name="RefreshDisksBtn" Content="Refresh" Width="90" Margin="8,0,0,0"/>
           </StackPanel>
 
-          <TextBlock Grid.Row="5" Text="EVERYTHING ON THE SELECTED DISK WILL BE PERMANENTLY ERASED."
+          <TextBlock Grid.Row="6" Text="EVERYTHING ON THE SELECTED DISK WILL BE PERMANENTLY ERASED."
                      Foreground="Red" FontWeight="Bold" Margin="0,4"/>
 
-          <StackPanel Orientation="Horizontal" Grid.Row="6" Margin="0,4">
+          <StackPanel Orientation="Horizontal" Grid.Row="7" Margin="0,4">
             <TextBlock Text="Type disk number to confirm:" Width="220" VerticalAlignment="Center"/>
             <TextBox Name="WinConfirmBox" Width="80"/>
           </StackPanel>
 
-          <StackPanel Orientation="Horizontal" Grid.Row="7" Margin="0,10">
+          <StackPanel Orientation="Horizontal" Grid.Row="8" Margin="0,10">
             <Button Name="DeployWinBtn" Content="Wipe &amp; Deploy Windows" Width="220" Height="34"
                     Background="#B5482F" Foreground="White" FontWeight="Bold" IsEnabled="False"/>
           </StackPanel>
@@ -478,6 +483,21 @@ $c['BrowseIsoBtn'].Add_Click({
     if ($dlg.ShowDialog() -eq 'OK') { $c['IsoPathBox'].Text = $dlg.FileName }
 })
 
+$c['OpenDownloadPageBtn'].Add_Click({
+    $ver = $c['WinVersion'].Text
+    switch ($ver) {
+        '11' { Start-Process 'https://www.microsoft.com/software-download/windows11' }
+        '10' { Start-Process 'https://www.microsoft.com/software-download/windows10ISO' }
+        '8.1' {
+            [System.Windows.MessageBox]::Show(
+                "Microsoft no longer offers an official public download for Windows 8.1 -- that page was retired after extended support ended in January 2023.`n`nRemaining sources are third-party archives (e.g. archive.org mirrors claiming to be untouched copies of the original Microsoft files). This app won't auto-open one of those for you, since their authenticity isn't something either of us can fully verify -- if you go that route, treat it as a personal judgment call, and verify the file hash against a known-good source if you can find one.",
+                "Windows 8.1 download",
+                'OK', 'Warning'
+            ) | Out-Null
+        }
+    }
+})
+
 function Update-WinDeployButton {
     $picked = $c['DiskPicker'].SelectedItem
     if (-not $picked) { $c['DeployWinBtn'].IsEnabled = $false; return }
@@ -523,9 +543,13 @@ $c['DeployWinBtn'].Add_Click({
                 $psi.UseShellExecute = $false
                 $psi.CreateNoWindow = $true
                 $fidoProc = [System.Diagnostics.Process]::Start($psi)
+                $fidoOutputHitSentinel = $false
                 while (-not $fidoProc.StandardOutput.EndOfStream) {
                     $line = $fidoProc.StandardOutput.ReadLine()
-                    if ($line) { $sync.Log.Add("[Fido] $line") }
+                    if ($line) {
+                        $sync.Log.Add("[Fido] $line")
+                        if ($line -match 'Sentinel') { $fidoOutputHitSentinel = $true }
+                    }
                 }
                 $stderr = $fidoProc.StandardError.ReadToEnd()
                 $fidoProc.WaitForExit()
@@ -535,7 +559,12 @@ $c['DeployWinBtn'].Add_Click({
                 }
 
                 $iso = Get-ChildItem -Path $scriptRoot -Filter '*.iso' -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-                if (-not $iso) { throw "Fido did not produce an ISO file. Check the [Fido] lines above in the log for what it actually reported." }
+                if (-not $iso) {
+                    if ($fidoOutputHitSentinel) {
+                        throw "Fido was blocked by Microsoft's own anti-automation system (this is a known, currently-active issue affecting Fido/Rufus broadly -- not something this app can fix). Use the 'Get ISO from Microsoft' button next to the ISO field to download it manually instead, then Browse to the file."
+                    }
+                    throw "Fido did not produce an ISO file. Check the [Fido] lines above in the log for what it actually reported."
+                }
                 $isoPath = $iso.FullName
             }
             $sync.Log.Add("Using ISO: $isoPath")
