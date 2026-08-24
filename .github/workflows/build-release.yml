@@ -27,6 +27,7 @@ jobs:
       - name: Compile OSmaster-GUI.ps1 to a standalone .exe
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           Import-Module ps2exe
           Invoke-ps2exe -inputFile "OSmaster-GUI.ps1" `
                          -outputFile "OSmaster.exe" `
@@ -35,18 +36,32 @@ jobs:
                          -requireAdmin `
                          -noConsole:$false `
                          -STA
+          if (-not (Test-Path "OSmaster.exe")) {
+            throw "ps2exe did not produce OSmaster.exe -- compile failed."
+          }
+          $size = (Get-Item "OSmaster.exe").Length
+          Write-Host "Compiled OSmaster.exe: $size bytes"
+          if ($size -lt 50000) {
+            throw "OSmaster.exe is suspiciously small ($size bytes) -- likely a broken/incomplete compile."
+          }
 
       - name: Package portable folder (exe + companion scripts it may shell out to)
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item OSmaster.exe dist\
+          Copy-Item OSmaster.exe dist\ -ErrorAction Stop
           Copy-Item Deploy-Windows.ps1 dist\
           Copy-Item Prep-XboxRecovery.ps1 dist\
           Copy-Item Prep-PlayStationRecovery.ps1 dist\
           Copy-Item OSmaster.ps1 dist\
           Copy-Item README.md dist\
           Compress-Archive -Path dist\* -DestinationPath OSmaster-Windows.zip
+          $zipSize = (Get-Item "OSmaster-Windows.zip").Length
+          Write-Host "Final zip size: $zipSize bytes"
+          if ($zipSize -lt 100000) {
+            throw "OSmaster-Windows.zip is suspiciously small ($zipSize bytes) -- OSmaster.exe likely wasn't included."
+          }
 
       - name: Upload Windows build artifact
         uses: actions/upload-artifact@v4
