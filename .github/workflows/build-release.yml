@@ -4,7 +4,12 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish this build as'
+        required: false
+        default: 'dev-build'
 
 permissions:
   contents: write
@@ -105,6 +110,7 @@ jobs:
       - name: Publish GitHub Release with both downloads attached
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
           files: |
             artifacts/OSmaster-Windows/OSmaster-Windows.zip
             artifacts/OSmaster-macOS/OSmaster-macOS.zip
