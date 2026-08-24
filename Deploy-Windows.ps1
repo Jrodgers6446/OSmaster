@@ -27,6 +27,17 @@
     out-of-box first-run screens), skipping the file-copy/install phase
     entirely, since the files are already applied to disk.
 
+.WARNING (Fido reliability)
+    Microsoft runs an anti-automation system ("Sentinel") on its download
+    servers that can block Fido's requests outright — you'll see an error
+    containing "Sentinel marked this request as rejected" if this happens.
+    This is a known, currently-active issue affecting Fido and Rufus
+    broadly (server-side IP flagging on Microsoft's end), not a bug in
+    this script, and there is no code-level fix for it here. A VPN
+    generally does not help. If it happens, download the ISO by hand from
+    https://www.microsoft.com/software-download/windows11 (or windows10ISO
+    for Windows 10) and pass it via -IsoPath instead of relying on Fido.
+
 .WARNING
     Step 2 of this script runs `clean` on the disk you select, which
     PERMANENTLY ERASES EVERYTHING ON IT. There is no undo. The script will
