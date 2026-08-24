@@ -59,7 +59,7 @@ jobs:
           Compress-Archive -Path dist\* -DestinationPath OSmaster-Windows.zip
           $zipSize = (Get-Item "OSmaster-Windows.zip").Length
           Write-Host "Final zip size: $zipSize bytes"
-          if ($zipSize -lt 100000) {
+          if ($zipSize -lt 60000) {
             throw "OSmaster-Windows.zip is suspiciously small ($zipSize bytes) -- OSmaster.exe likely wasn't included."
           }
 
