@@ -1,10 +1,43 @@
 # OSmaster
 
-A single PowerShell script that chains together the full Windows deployment pipeline, end to end:
+Two scripts that chain together full OS deployment pipelines, end to end — one for Windows, one for macOS. They work quite differently under the hood, because Windows and Apple distribute their OS installers in fundamentally different ways.
 
-1. **Fetch** — downloads an official Windows 10/11 ISO directly from Microsoft's servers using [Fido](https://github.com/pbatard/Fido) (no browser click-through, no third-party mirrors).
+## Deploy-Windows.ps1
+
+1. **Fetch** — downloads an official Windows ISO directly from Microsoft's servers using [Fido](https://github.com/pbatard/Fido) (no browser click-through, no third-party mirrors). Supports **Windows 8.1, 10, and 11**, across whichever editions Microsoft still distributes retail ISOs for (Home/Pro/Education/Enterprise — varies by version).
 2. **Prepare** — partitions and formats a target disk with a standard UEFI/GPT layout (EFI system partition + Windows partition).
 3. **Deploy** — applies the Windows image directly with DISM and makes it bootable with `bcdboot`, skipping the interactive Setup GUI entirely. On first boot, the target disk goes straight into Windows OOBE (the out-of-box setup screens).
+
+Run on: Windows, PowerShell 5.1+, as Administrator.
+
+> Note: plain Windows 8 (pre-8.1) retail ISOs are no longer distributed by Microsoft at all — 8.1 is the oldest version Fido (and this script) can fetch.
+
+## Deploy-macOS.sh
+
+### How this differs from the Windows script
+
+Windows and macOS have genuinely different distribution models, so this isn't just a language port of the same idea:
+
+- **Apple's installer-fetching tools only run on macOS itself.** There's no equivalent of "run Fido from any OS to get a Windows-style ISO" for macOS — `softwareupdate` (Apple's own fetch command) and `createinstallmedia` (Apple's own media-creation tool) are macOS-only binaries. This script has to be run **on an actual Mac**, not from Windows or Linux. That's an Apple platform restriction, not a limitation of this script.
+- **There's no single portable "ISO" file for macOS** the way Windows has — `softwareupdate --fetch-full-installer` downloads a full installer *application* (several GB) into `/Applications`, and that app itself contains the tools used in the next step.
+- **Two different deployment modes**, matching what Apple's own tools support:
+  1. **Bootable USB installer** (`createinstallmedia`) — same idea as making Windows install media.
+  2. **Headless direct deployment** (`startosinstall`) — installs straight onto a target volume without manually booting from external media, similar in spirit to the Windows script's DISM/bcdboot approach, though the underlying mechanism is Apple's own installer assistant rather than an image-apply step.
+
+### Usage
+
+```zsh
+chmod +x Deploy-macOS.sh
+./Deploy-macOS.sh
+```
+
+It'll walk you through: listing available macOS versions Apple currently serves → fetching the one you choose → picking bootable-USB vs. direct-deploy → confirming the target volume (with an explicit `YES` confirmation, same safety pattern as the Windows script) → running the actual installer step.
+
+Run on: an actual Mac, macOS, with `sudo` access.
+
+### A note on hardware
+
+Apple's installer tools are built for, and intended for, genuine Apple hardware. This script doesn't do anything to work around that — it's a straightforward wrapper around Apple's own `softwareupdate`/`createinstallmedia`/`startosinstall` commands, used the way Apple documents them.
 
 ## ⚠️ Before you run this
 
@@ -15,13 +48,13 @@ A single PowerShell script that chains together the full Windows deployment pipe
 
 Even so — **triple-check the disk number and size before confirming.** There is no undo for `clean`. Never run this against a system you haven't personally verified, and never automate away the confirmation prompts unless you have independently verified the target disk through some other means first.
 
-## Requirements
+## Requirements (Deploy-Windows.ps1)
 
 - Windows, PowerShell 5.1+
 - Run as Administrator
 - Internet access (to fetch the ISO and Fido itself, if not already present)
 
-## Usage
+## Usage (Deploy-Windows.ps1)
 
 ### Fully interactive (recommended for first use)
 ```powershell
