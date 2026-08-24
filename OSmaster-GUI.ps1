@@ -328,6 +328,9 @@ disabled until then.
 TOOLS IN THIS APP
   - Deploy Windows: fetches an official Windows 8.1/10/11 ISO (via Fido)
     and deploys it directly onto a target disk -- no Setup GUI involved.
+    NOTE: Fido's auto-download can be blocked by Microsoft's own
+    anti-automation system -- see the Deploy Windows tab for details and
+    the manual-download fallback if that happens.
   - Xbox Recovery: prepares a USB for Microsoft's official OSU1 offline
     system update / repair process.
   - PlayStation Recovery: prepares a USB for Sony's official PS3/PS4/PS5
@@ -341,6 +344,20 @@ WHAT THIS DOES
   partitions, formats, and deploys it directly onto a target disk -- no
   Windows Setup GUI involved. On first boot, the target disk goes
   straight into Windows OOBE (the first-run setup screens).
+
+!! KNOWN ISSUE: FIDO'S AUTO-DOWNLOAD CAN BE UNRELIABLE !!
+  Microsoft runs an anti-automation system (internally called "Sentinel")
+  on their download servers that sometimes blocks Fido's requests outright
+  -- you'll see "Sentinel marked this request as rejected" in the log if
+  this happens. This is a known, currently-active issue affecting Fido
+  and Rufus broadly, tied to Microsoft flagging IPs server-side -- it is
+  NOT a bug in this app, and there's no code fix for it here. It can hit
+  an ordinary residential/cellular connection with no VPN involved, and a
+  VPN generally does not help (Microsoft filters those too).
+  If auto-download fails: use the "Get ISO from Microsoft" button next
+  to the ISO field to open the real browser download page instead, save
+  the ISO by hand, then Browse to it. That path doesn't go through Fido
+  at all and isn't affected by this block.
 
 SUPPORTS: Windows 8.1, 10, and 11 (there is no Windows 9 -- Microsoft
 skipped that number entirely, going straight from 8.1 to 10), in x64/
