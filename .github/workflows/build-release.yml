@@ -45,6 +45,12 @@ jobs:
             throw "OSmaster.exe is suspiciously small ($size bytes) -- likely a broken/incomplete compile."
           }
 
+      - name: DEBUG - upload raw exe alone so size is checkable via artifact metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-raw-exe
+          path: OSmaster.exe
+
       - name: Package portable folder (exe + companion scripts it may shell out to)
         shell: pwsh
         run: |
