@@ -50,18 +50,51 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item OSmaster.exe dist\ -ErrorAction Stop
+
+          # A freshly-compiled .exe can be briefly locked by Windows Defender's
+          # real-time scan on the runner -- retry the copy a few times rather
+          # than fail immediately on a transient sharing violation.
+          $copied = $false
+          for ($i = 0; $i -lt 5; $i++) {
+            try {
+              Copy-Item OSmaster.exe dist\ -ErrorAction Stop
+              $copied = $true
+              break
+            } catch {
+              Write-Host "Copy attempt $($i+1) failed: $($_.Exception.Message) -- retrying in 3s..."
+              Start-Sleep -Seconds 3
+            }
+          }
+          if (-not $copied) { throw "Could not copy OSmaster.exe to dist\ after 5 attempts." }
+
           Copy-Item Deploy-Windows.ps1 dist\
           Copy-Item Prep-XboxRecovery.ps1 dist\
           Copy-Item Prep-PlayStationRecovery.ps1 dist\
           Copy-Item OSmaster.ps1 dist\
           Copy-Item README.md dist\
+
+          Write-Host "Contents of dist\:"
+          Get-ChildItem dist\ | Format-Table Name, Length
+
           Compress-Archive -Path dist\* -DestinationPath OSmaster-Windows.zip
-          $zipSize = (Get-Item "OSmaster-Windows.zip").Length
-          Write-Host "Final zip size: $zipSize bytes"
-          if ($zipSize -lt 60000) {
-            throw "OSmaster-Windows.zip is suspiciously small ($zipSize bytes) -- OSmaster.exe likely wasn't included."
+
+          # Total zip byte-size is a bad signal to check (compression ratio
+          # is unpredictable) -- instead, verify the actual .exe entry
+          # exists inside the zip with a real (uncompressed) size.
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead("OSmaster-Windows.zip")
+          $exeEntry = $zip.Entries | Where-Object { $_.Name -eq 'OSmaster.exe' }
+          if (-not $exeEntry) {
+            $zip.Dispose()
+            throw "OSmaster.exe is not present inside OSmaster-Windows.zip."
           }
+          Write-Host "OSmaster.exe inside zip: $($exeEntry.Length) bytes (uncompressed)"
+          if ($exeEntry.Length -lt 20000) {
+            $zip.Dispose()
+            throw "OSmaster.exe inside the zip is only $($exeEntry.Length) bytes -- almost certainly broken."
+          }
+          $zip.Dispose()
+          Write-Host "Verified: OSmaster.exe is present and a plausible size."
 
       - name: Upload Windows build artifact
         uses: actions/upload-artifact@v4
