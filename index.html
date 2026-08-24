@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSmaster</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #14161a;
+    --panel: #1c1f24;
+    --border: #2c2f36;
+    --text: #e9e9ec;
+    --muted: #8b8e96;
+    --amber: #e6aa46;
+    --teal: #5ac8be;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .wrench {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 1.2rem;
+  }
+
+  h1 {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 2rem;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.4rem;
+  }
+
+  p.tagline {
+    color: var(--muted);
+    margin: 0 0 2.5rem;
+    font-size: 1rem;
+  }
+
+  .buttons {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    width: 220px;
+    padding: 1.8rem 1.5rem;
+    background: var(--panel);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .btn:hover {
+    border-color: var(--amber);
+    transform: translateY(-2px);
+  }
+  .btn .icon { font-size: 2.2rem; }
+  .btn .label {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+  .btn .sub {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  footer {
+    margin-top: 3rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  footer a { color: var(--teal); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<svg class="wrench" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect x="30" y="30" width="452" height="452" rx="92" fill="#14161a"/>
+  <line x1="177" y1="335" x2="335" y2="177" stroke="#e6aa46" stroke-width="82" stroke-linecap="round"/>
+  <circle cx="177" cy="335" r="82" fill="none" stroke="#e6aa46" stroke-width="38"/>
+  <line x1="177" y1="335" x2="120" y2="392" stroke="#14161a" stroke-width="72"/>
+  <circle cx="335" cy="177" r="26" fill="#5ac8be"/>
+</svg>
+
+<h1>OSmaster</h1>
+<p class="tagline">OS deployment &amp; console recovery toolkit</p>
+
+<div class="buttons">
+  <a class="btn" href="https://raw.githubusercontent.com/Jrodgers6446/OSmaster/main/dist/OSmaster-Windows.zip">
+    <span class="icon">🪟</span>
+    <span class="label">Run Program &mdash; Windows</span>
+    <span class="sub">OSmaster-Windows.zip</span>
+  </a>
+  <a class="btn" href="https://raw.githubusercontent.com/Jrodgers6446/OSmaster/main/dist/OSmaster-macOS.zip">
+    <span class="icon">🍎</span>
+    <span class="label">Run Program &mdash; Mac</span>
+    <span class="sub">OSmaster-macOS.zip</span>
+  </a>
+</div>
+
+<footer>
+  <a href="https://github.com/Jrodgers6446/OSmaster">Full source &amp; documentation on GitHub</a>
+</footer>
+
+</body>
+</html>
