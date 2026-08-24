@@ -19,8 +19,11 @@ Add-Type -AssemblyName PresentationFramework, System.Windows.Forms, WindowsBase
 # Shared state for background tasks + logging
 # ---------------------------------------------------------------------
 $sync = [hashtable]::Synchronized(@{
-    Log     = New-Object System.Collections.Generic.List[string]
-    Running = $false
+    Log      = New-Object System.Collections.Generic.List[string]
+    Running  = $false
+    Progress = -1        # -1 = indeterminate (no real percentage available), 0-100 = real percentage
+    Stage    = ''        # short label of what's happening right now
+    StartTime = $null    # DateTime the current task started, for elapsed/ETA
 })
 $logCursor = 0
 
@@ -28,6 +31,9 @@ function Start-BackgroundTask {
     param([scriptblock]$ScriptBlock, [hashtable]$Params = @{})
     if ($sync.Running) { return $null }
     $sync.Running = $true
+    $sync.Progress = -1
+    $sync.Stage = 'Starting...'
+    $sync.StartTime = Get-Date
     $ps = [PowerShell]::Create()
     $ps.Runspace = [runspacefactory]::CreateRunspace()
     $ps.Runspace.Open()
@@ -48,7 +54,8 @@ function Start-BackgroundTask {
   <Grid Margin="10">
     <Grid.RowDefinitions>
       <RowDefinition Height="*"/>
-      <RowDefinition Height="180"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="150"/>
     </Grid.RowDefinitions>
 
     <TabControl Grid.Row="0" Name="MainTabs">
@@ -225,7 +232,17 @@ function Start-BackgroundTask {
 
     </TabControl>
 
-    <GroupBox Header="Log" Grid.Row="1" Margin="0,10,0,0">
+    <Grid Grid.Row="1" Margin="0,10,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <ProgressBar Name="ProgressBarCtl" Grid.Column="0" Height="22" Minimum="0" Maximum="100"/>
+      <TextBlock Name="ProgressStatusText" Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
+                 FontFamily="Consolas" FontSize="12" Text="Idle" Width="360" TextTrimming="CharacterEllipsis"/>
+    </Grid>
+
+    <GroupBox Header="Log" Grid.Row="2" Margin="0,10,0,0">
       <TextBox Name="LogBox" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                 FontFamily="Consolas" FontSize="12" Background="#111318" Foreground="#D7DCE0"/>
     </GroupBox>
@@ -403,13 +420,41 @@ function Append-Log([string]$line) {
     $c['LogBox'].ScrollToEnd()
 }
 
-# Poll timer: drains background-task log entries, re-enables UI when done
+# Poll timer: drains background-task log entries, drives the progress
+# bar/ETA display, re-enables UI when done.
+$script:wasRunning = $false
 $timer = New-Object System.Windows.Threading.DispatcherTimer
 $timer.Interval = [TimeSpan]::FromMilliseconds(300)
 $timer.Add_Tick({
     while ($logCursor -lt $sync.Log.Count) {
         Append-Log $sync.Log[$logCursor]
         $logCursor++
+    }
+
+    if ($sync.Running) {
+        $script:wasRunning = $true
+        $elapsed = if ($sync.StartTime) { (Get-Date) - $sync.StartTime } else { [TimeSpan]::Zero }
+        $elapsedStr = '{0:mm\:ss}' -f $elapsed
+
+        if ($sync.Progress -ge 0) {
+            $c['ProgressBarCtl'].IsIndeterminate = $false
+            $c['ProgressBarCtl'].Value = $sync.Progress
+            $etaStr = ''
+            if ($sync.Progress -gt 2) {
+                $totalEstSec = $elapsed.TotalSeconds * (100.0 / $sync.Progress)
+                $remainingSec = [math]::Max(0, $totalEstSec - $elapsed.TotalSeconds)
+                $etaStr = " -- about {0:mm\:ss} remaining" -f [TimeSpan]::FromSeconds($remainingSec)
+            }
+            $c['ProgressStatusText'].Text = "$($sync.Stage) $($sync.Progress)% -- elapsed $elapsedStr$etaStr"
+        } else {
+            $c['ProgressBarCtl'].IsIndeterminate = $true
+            $c['ProgressStatusText'].Text = "$($sync.Stage) -- elapsed $elapsedStr (no reliable time estimate for this step)"
+        }
+    } elseif ($script:wasRunning) {
+        $script:wasRunning = $false
+        $c['ProgressBarCtl'].IsIndeterminate = $false
+        $c['ProgressBarCtl'].Value = 0
+        $c['ProgressStatusText'].Text = "Idle"
     }
 })
 $timer.Start()
@@ -454,6 +499,7 @@ $c['DeployWinBtn'].Add_Click({
     Append-Log "Starting Windows deployment to Disk $diskNum..."
     Start-BackgroundTask -Params @{ diskNum = $diskNum; isoPath = $isoPath; winVer = $winVer; edition = $edition; arch = $arch; release = $release; scriptRoot = $PSScriptRoot } -ScriptBlock {
         try {
+            $sync.Stage = 'Fetching ISO'
             if (-not $isoPath) {
                 $sync.Log.Add("No ISO supplied -- fetching via Fido for Windows $winVer $edition ($arch)" + $(if ($release) { ", build $release" } else { ", latest build" }) + " ...")
                 $fidoPath = Join-Path $scriptRoot 'Fido.ps1'
@@ -472,6 +518,7 @@ $c['DeployWinBtn'].Add_Click({
             }
             $sync.Log.Add("Using ISO: $isoPath")
 
+            $sync.Stage = 'Partitioning disk'
             $sync.Log.Add("Partitioning Disk $diskNum ...")
             $dpScript = @"
 select disk $diskNum
@@ -491,15 +538,41 @@ exit
             diskpart /s $dpPath | Out-Null
             $sync.Log.Add("Partitioning complete.")
 
+            $sync.Stage = 'Mounting ISO'
             $sync.Log.Add("Mounting ISO...")
             $mount = Mount-DiskImage -ImagePath $isoPath -PassThru
             $isoLetter = ($mount | Get-Volume).DriveLetter
             $wim = "${isoLetter}:\sources\install.wim"
             if (-not (Test-Path $wim)) { $wim = "${isoLetter}:\sources\install.esd" }
 
-            $sync.Log.Add("Applying image (this takes a while)...")
-            Expand-WindowsImage -ImagePath $wim -Index 1 -ApplyPath 'W:\' | Out-Null
+            # Real progress for this step: call dism.exe directly (not the
+            # Expand-WindowsImage cmdlet, which doesn't expose progress) and
+            # parse its own "[=== 23.0% ]"-style output live as it streams.
+            $sync.Stage = 'Applying Windows image'
+            $sync.Progress = 0
+            $sync.Log.Add("Applying image -- this is the long step, usually several minutes...")
 
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = 'dism.exe'
+            $psi.Arguments = "/Apply-Image /ImageFile:`"$wim`" /Index:1 /ApplyDir:W:\"
+            $psi.RedirectStandardOutput = $true
+            $psi.UseShellExecute = $false
+            $psi.CreateNoWindow = $true
+            $proc = [System.Diagnostics.Process]::Start($psi)
+            while (-not $proc.StandardOutput.EndOfStream) {
+                $line = $proc.StandardOutput.ReadLine()
+                if ($line -match '(\d{1,3}(?:\.\d+)?)\s*%') {
+                    $pct = [double]$Matches[1]
+                    $sync.Progress = [Math]::Min(99, [int][Math]::Round($pct))
+                }
+            }
+            $proc.WaitForExit()
+            if ($proc.ExitCode -ne 0) { throw "dism.exe /Apply-Image failed with exit code $($proc.ExitCode)." }
+            $sync.Progress = 100
+            $sync.Log.Add("Image applied.")
+
+            $sync.Stage = 'Making bootable'
+            $sync.Progress = -1
             $sync.Log.Add("Making bootable...")
             & bcdboot 'W:\Windows' /s S: /f UEFI | Out-Null
 
@@ -548,9 +621,11 @@ $c['PrepXboxBtn'].Add_Click({
     Append-Log "Preparing Xbox recovery USB on ${letter}:..."
     Start-BackgroundTask -Params @{ letter = $letter; osuZip = $osuZip } -ScriptBlock {
         try {
+            $sync.Stage = 'Formatting USB'
             $sync.Log.Add("Formatting ${letter}: as NTFS...")
             Format-Volume -DriveLetter $letter -FileSystem NTFS -NewFileSystemLabel "XBOXOSU" -Confirm:$false | Out-Null
 
+            $sync.Stage = 'Extracting update files'
             $extract = Join-Path $env:TEMP "osu1_gui_extract"
             if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
             $sync.Log.Add("Extracting OSU1.zip...")
@@ -559,6 +634,7 @@ $c['PrepXboxBtn'].Add_Click({
             $folder = Get-ChildItem -Path $extract -Filter '$SystemUpdate' -Directory -Recurse | Select-Object -First 1
             if (-not $folder) { throw "No `$SystemUpdate folder found inside that zip -- is it the official OSU1 file?" }
 
+            $sync.Stage = 'Copying to USB'
             Copy-Item -Path $folder.FullName -Destination "${letter}:\`$SystemUpdate" -Recurse -Force
             $sync.Log.Add("DONE. USB ready. On the console: power off, unplug 30s, plug in USB, hold Pair+Eject (or just Pair on Series S) then press Xbox button until 2 power tones, then choose offline update in Startup Troubleshooter.")
         } catch {
@@ -610,9 +686,11 @@ $c['PrepPsBtn'].Add_Click({
     Append-Log "Preparing $console recovery USB on ${letter}:..."
     Start-BackgroundTask -Params @{ letter = $letter; pupPath = $pupPath; console = $console; fileName = $fileName } -ScriptBlock {
         try {
+            $sync.Stage = 'Formatting USB'
             $sync.Log.Add("Formatting ${letter}: as exFAT...")
             Format-Volume -DriveLetter $letter -FileSystem exFAT -NewFileSystemLabel "${console}REC" -Confirm:$false | Out-Null
 
+            $sync.Stage = 'Copying update file'
             $destFolder = "${letter}:\$console\UPDATE"
             New-Item -ItemType Directory -Force -Path $destFolder | Out-Null
             Copy-Item -Path $pupPath -Destination (Join-Path $destFolder $fileName) -Force
