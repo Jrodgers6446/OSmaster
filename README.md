@@ -1,5 +1,16 @@
 # OSmaster
 
+## Download
+
+Prebuilt, ready-to-run downloads (no PowerShell/Terminal command needed to start) are published automatically on the **[Releases page](https://github.com/Jrodgers6446/OSmaster/releases)**:
+
+- **Windows:** `OSmaster-Windows.zip` — unzip and double-click `OSmaster.exe`. It'll prompt for admin rights (required) and open the same tabbed window described below.
+- **macOS:** `OSmaster-macOS.zip` — unzip and double-click `OSmaster.app`. **Honest caveat:** unlike the Windows build, there's no native Mac GUI yet — the `.app` just opens Terminal and runs the interactive `Deploy-macOS.sh` script for you. It's genuinely double-click-and-go, just not a full window with tabs/buttons like the Windows version.
+
+Both are built automatically by GitHub Actions on GitHub's own Windows and Mac servers every time a new version is tagged — see `.github/workflows/build-release.yml` if you want to see exactly how, or trigger a rebuild yourself from the Actions tab.
+
+## The scripts themselves (if you'd rather not use the packaged downloads)
+
 A native tabbed GUI (`OSmaster-GUI.ps1`) plus the underlying scripts it wraps — one for Windows deployment, one for macOS, and two official-recovery tools for Xbox and PlayStation consoles.
 
 ## Start here: `OSmaster-GUI.ps1`
