@@ -452,20 +452,22 @@ $c['DeployWinBtn'].Add_Click({
     $release = $c['WinRelease'].Text
 
     Append-Log "Starting Windows deployment to Disk $diskNum..."
-    Start-BackgroundTask -Params @{ diskNum = $diskNum; isoPath = $isoPath; winVer = $winVer; edition = $edition; arch = $arch; release = $release } -ScriptBlock {
+    Start-BackgroundTask -Params @{ diskNum = $diskNum; isoPath = $isoPath; winVer = $winVer; edition = $edition; arch = $arch; release = $release; scriptRoot = $PSScriptRoot } -ScriptBlock {
         try {
             if (-not $isoPath) {
                 $sync.Log.Add("No ISO supplied -- fetching via Fido for Windows $winVer $edition ($arch)" + $(if ($release) { ", build $release" } else { ", latest build" }) + " ...")
-                $fidoPath = Join-Path $PSScriptRoot 'Fido.ps1'
+                $fidoPath = Join-Path $scriptRoot 'Fido.ps1'
                 if (-not (Test-Path $fidoPath)) {
+                    $sync.Log.Add("Downloading Fido.ps1 to: $fidoPath")
                     Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/pbatard/Fido/master/Fido.ps1' -OutFile $fidoPath -UseBasicParsing
                 }
                 $fidoArgs = @('-ExecutionPolicy','Bypass','-File',$fidoPath,'-Win',$winVer,'-Arch',$arch)
                 if ($edition) { $fidoArgs += @('-Ed', $edition) }
                 if ($release) { $fidoArgs += @('-Rel', $release) }
+                $sync.Log.Add("Running: powershell.exe $($fidoArgs -join ' ')")
                 & powershell.exe @fidoArgs
-                $iso = Get-ChildItem -Path (Split-Path $fidoPath) -Filter '*.iso' -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-                if (-not $iso) { throw "Fido did not produce an ISO file." }
+                $iso = Get-ChildItem -Path $scriptRoot -Filter '*.iso' -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+                if (-not $iso) { throw "Fido did not produce an ISO file. Check the log lines above for what Fido itself printed." }
                 $isoPath = $iso.FullName
             }
             $sync.Log.Add("Using ISO: $isoPath")
